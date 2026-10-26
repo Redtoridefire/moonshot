@@ -52,6 +52,19 @@ public class ScreenTest {
     return null;
   }
 
+  TextView hint(View v, String value) {
+    if (v instanceof TextView
+        && value.equals(
+            ((TextView) v).getHint() == null ? null : ((TextView) v).getHint().toString()))
+      return (TextView) v;
+    if (v instanceof ViewGroup)
+      for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) {
+        TextView found = hint(((ViewGroup) v).getChildAt(i), value);
+        if (found != null) return found;
+      }
+    return null;
+  }
+
   void settle() throws Exception {
     for (int i = 0; i < 20; i++) {
       Shadows.shadowOf(Looper.getMainLooper()).idle();
@@ -60,7 +73,7 @@ public class ScreenTest {
   }
 
   @Test
-  public void playlistEntryIsSecureAndGuideOpens() throws Exception {
+  public void playlistAddressIsReadableAndGuideOpens() throws Exception {
     try (ActivityController<MainActivity> controller =
         Robolectric.buildActivity(MainActivity.class).setup()) {
       MainActivity activity = controller.get();
@@ -80,6 +93,18 @@ public class ScreenTest {
       AlertDialog entry = ShadowAlertDialog.getLatestAlertDialog();
       assertTrue(
           (entry.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
+      EditText address =
+          (EditText)
+              hint(entry.getWindow().getDecorView(), "https://provider.example/playlist.m3u");
+      assertNotNull("M3U address input must be present", address);
+      address.setText("https://example.invalid/playlist.m3u?token=fixture");
+      assertNull(
+          "The address must be readable, not password masked", address.getTransformationMethod());
+      assertEquals(
+          android.text.InputType.TYPE_TEXT_VARIATION_URI,
+          address.getInputType() & android.text.InputType.TYPE_MASK_VARIATION);
+      assertEquals(
+          "https://example.invalid/playlist.m3u?token=fixture", address.getText().toString());
       entry.dismiss();
       settings.dismiss();
       assertNotNull(text(root, "Program guide"));

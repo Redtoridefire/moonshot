@@ -1,8 +1,16 @@
-# Moonshot TV · 0.3.0
+# Moonshot TV · 0.4.0
 
 An independent native Android TV IPTV player for Google TV Streamer and Fire TV Stick 4K Max, with an original dark interface, mint remote focus rings and device-local libraries. One universal APK targets Android 8.0/API 26 and later. No Google Play services, subscription, content, ads or analytics account is bundled.
 
 **Development build.** Automated framework/fixture tests pass as recorded in [validation](docs/VALIDATION.md); physical-device and live-provider acceptance remain open. This is not a claim of complete TiviMate/Apollo feature parity or measured superiority in speed, memory or security.
+
+## TV interface
+
+The 0.4 interface adds an icon sidebar, a focused-channel information panel, stronger remote focus/selected states, gradient channel cards and a persistent **List view / Grid view** switch. The program guide includes a half-hour time ruler and highlights currently airing programs. It uses local metadata and original vector icons; browsing does not start preview streams or download extra artwork.
+
+![Channel library](docs/images/library-grid.png)
+
+[Compact list](docs/images/library-list.png) · [Program guide](docs/images/program-guide.png). These images render the actual Android layouts with synthetic channels and program fixtures in Robolectric; they are not screenshots of a real subscription or proof of TV-device acceptance.
 
 ## Download APK
 
@@ -16,7 +24,7 @@ CI development APKs currently use a new debug signing key per runner, so an upda
 
 The development-signed test APK is `app/build/outputs/apk/debug/app-debug.apk`. Sideload with an authorized installer or `adb install -r app/build/outputs/apk/debug/app-debug.apk`. Keep the same signing key to update an earlier development build without losing device-local data. Production releases need your own protected signing identity; the optimized `assembleRelease` APK is unsigned.
 
-Open **Moonshot → Settings**, then choose either **Add M3U playlist** or **Add Xtream-compatible login**. Enter credentials on the TV; no private URL is embedded in the APK or source. HTTPS is the default. Explicitly allow HTTP only when a trusted provider requires it; HTTP exposes access details and requests to the network.
+Open **Moonshot → Settings**, then choose either **Add M3U playlist** or **Add Xtream-compatible login**. M3U and XMLTV addresses are readable while entering or editing them, so you can check spelling; long addresses scroll horizontally. Password and PIN fields remain masked. Enter credentials on the TV; no private URL is embedded in the APK or source. HTTPS is the default. Explicitly allow HTTP only when a trusted provider requires it; HTTP exposes access details and requests to the network.
 
 - Use **Live TV / Movies / Series**, groups, custom groups and search to browse the local stream library. Up to 5,000 matching streams are shown; narrow the group/search when needed.
 - Hold OK on a stream for favorites, hide, move earlier/later, custom group assignment, recording or multiview. Hidden items can be restored in Settings. Settings also offers ordering reset and playlist name/address editing.

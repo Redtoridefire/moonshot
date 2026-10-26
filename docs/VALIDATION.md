@@ -1,4 +1,4 @@
-# Validation evidence · 0.3.0 development candidate
+# Validation evidence · 0.4.0 development candidate
 
 ## Current-instance automated results
 
@@ -30,16 +30,16 @@ Framework and JVM test classes run in separate processes to avoid global securit
 - The setup script was exercised repeatedly; final dependency resolution is recorded in `app/gradle.lockfile`. Setup does not rewrite that lockfile.
 - Gradle distribution SHA-256 remains pinned. Dependency downloads use verified TLS. No artifact, certificate or package verification was disabled.
 - CI actions are pinned to commit SHAs verified from their official repositories. At the time of local validation, GitHub Actions had not run. The included workflow runs on push; its remote results must be checked separately.
-- APK development-signature verification and private-subscription scanning are performed when packaging the artifact; see the accompanying artifact verification JSON/checksum.
+- APK development-signature verification and private-subscription scanning are performed when packaging the artifact; see the accompanying artifact verification JSON/checksum. Version 0.4 was visually inspected using actual Android layouts rendered with synthetic fixtures (docs/images); this does not certify physical-TV rendering.
 
 ## Checks that remain blocked / unrun
 
-- `./gradlew connectedDebugAndroidTest` was attempted again and failed with **No connected devices!**. The earlier software TV emulator remained unauthorized and this machine has no KVM. No application-level instrumentation test has passed or failed; the instrumentation suite did not execute.
+- `./gradlew connectedDebugAndroidTest` was attempted again and failed with **No connected devices!**. The earlier software TV emulator remained unauthorized and this machine has no KVM. This cloud attempt did not execute the instrumentation suite. Separately, user-supplied GitHub run 1 logs show nine emulator tests executed with one failure in `browsesFavoritesWithRemote`; the abbreviated log did not identify its assertion line. The fixture’s conflicting screenshot assertion was replaced with focus/filter/protection checks; remote rerun confirmation remains required.
 - The provider host was retried read-only and remains denied by the cloud proxy with CONNECT HTTP 403. Its requested domain addition is saved in the environment draft, not applied to this instance. No real M3U, Xtream, XMLTV, catch-up or subscription playback is certified.
 - Google TV Streamer and Fire TV Stick 4K Max hardware testing has not occurred here. The user has offered both devices; `HARDWARE_CHECKLIST.md` defines the required results.
 - Native video/audio decoding, 4K/HDR/surround behavior, original-remotes, document-picker availability, real sleep/reboot/exact-alarm policies, long captures, storage exhaustion and memory/latency comparisons remain open.
 - The release APK is unsigned. Production signing, store review/publication and fresh-task environment restoration have not been validated.
 
-The 0.3 candidate implements core functionality across the six roadmap areas. **It is not production-ready, complete feature parity, or a completed six-phase acceptance claim.** Read ROADMAP.md for capability limits and outstanding gates. This report records local validation; publishing the source does not close the remaining acceptance gates.
+The 0.4 candidate implements core functionality across the six roadmap areas. **It is not production-ready, complete feature parity, or a completed six-phase acceptance claim.** Read ROADMAP.md for capability limits and outstanding gates. This report records local validation; publishing the source does not close the remaining acceptance gates.
 
 The instrumentation fixtures now require both emulator hardware identification and the explicit `moonshot.resetTestData=true` argument before touching app data. CI passes the flag only to its dedicated AVD. Use the manual hardware checklist on personal TVs; the destructive fixture suite is not permitted there.

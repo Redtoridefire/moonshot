@@ -17,6 +17,7 @@ public final class GuideActivity extends FamilyActivity {
   Library library;
   RecyclerView rows;
   TextView heading;
+  LinearLayout ruler;
   long start;
   int ticket;
   String query = "";
@@ -48,7 +49,7 @@ public final class GuideActivity extends FamilyActivity {
       return;
     }
     LinearLayout root = Ui.column(this);
-    root.setBackgroundColor(Ui.BG);
+    root.setBackground(Ui.gradient(Ui.BG, android.graphics.Color.rgb(15, 25, 38), 0));
     int p = Ui.dp(this, 24);
     root.setPadding(p, p, p, p);
     setContentView(root);
@@ -84,7 +85,11 @@ public final class GuideActivity extends FamilyActivity {
     root.addView(bar);
     EditText search = Ui.input(this, "Search guide channels", false);
     search.setText(query);
-    root.addView(search);
+    search.setBackground(Ui.focus(this));
+    search.setPadding(Ui.dp(this, 16), 0, Ui.dp(this, 16), 0);
+    LinearLayout.LayoutParams searchSize = new LinearLayout.LayoutParams(-1, Ui.dp(this, 42));
+    searchSize.setMargins(0, Ui.dp(this, 14), 0, Ui.dp(this, 10));
+    root.addView(search, searchSize);
     search.addTextChangedListener(
         new android.text.TextWatcher() {
           Runnable pending;
@@ -107,7 +112,12 @@ public final class GuideActivity extends FamilyActivity {
                 + " Settings.",
             12,
             Ui.MUTED);
+    help.setPadding(0, 0, 0, Ui.dp(this, 14));
     root.addView(help);
+    ruler = Ui.row(this);
+    ruler.setPadding(0, Ui.dp(this, 9), 0, Ui.dp(this, 9));
+    root.addView(ruler);
+
     rows = new RecyclerView(this);
     rows.setLayoutManager(new LinearLayoutManager(this));
     rows.setItemAnimator(null);
@@ -148,6 +158,17 @@ public final class GuideActivity extends FamilyActivity {
     String search = query;
     heading.setText(
         "  " + formatter().format(new Date(from)) + " – " + formatter().format(new Date(to)));
+    ruler.removeAllViews();
+    TextView channels = Ui.text(this, "CHANNELS", 10, Ui.MINT);
+    channels.setLetterSpacing(.12f);
+    ruler.addView(channels, new LinearLayout.LayoutParams(Ui.dp(this, 160), -2));
+    java.text.DateFormat time = new java.text.SimpleDateFormat("HH:mm", Locale.getDefault());
+    time.setTimeZone(formatter().getTimeZone());
+    for (int i = 0; i < 4; i++) {
+      TextView label = Ui.text(this, time.format(new Date(from + i * WINDOW / 4)), 12, Ui.MUTED);
+      label.setPadding(Ui.dp(this, 10), 0, 0, 0);
+      ruler.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
+    }
     worker.execute(
         () -> {
           try {
@@ -213,9 +234,11 @@ public final class GuideActivity extends FamilyActivity {
       LinearLayout view = (LinearLayout) holder.itemView;
       view.removeAllViews();
       Row row = data.get(position);
-      view.addView(
-          Ui.button(GuideActivity.this, row.channel.name, () -> watch(row.channel)),
-          new LinearLayout.LayoutParams(Ui.dp(GuideActivity.this, 160), -1));
+      Button channel = Ui.button(GuideActivity.this, row.channel.name, () -> watch(row.channel));
+      channel.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+      channel.setMaxLines(2);
+      channel.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      view.addView(channel, new LinearLayout.LayoutParams(Ui.dp(GuideActivity.this, 160), -1));
       LinearLayout cells = Ui.row(GuideActivity.this);
       view.addView(cells, new LinearLayout.LayoutParams(0, -1, 1));
       long cursor = from;
@@ -229,9 +252,14 @@ public final class GuideActivity extends FamilyActivity {
                 GuideActivity.this,
                 formatter().format(new Date(program.start)) + "\n" + program.title,
                 () -> details(row.channel, program));
+        cell.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        long now = System.currentTimeMillis();
+        cell.setSelected(program.start <= now && now < program.end);
         cell.setMaxLines(3);
         cell.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        cells.addView(cell, new LinearLayout.LayoutParams(0, -1, (float) (right - left) / WINDOW));
+        LinearLayout.LayoutParams size =
+            new LinearLayout.LayoutParams(0, -1, (float) (right - left) / WINDOW);
+        cells.addView(cell, size);
         cursor = right;
       }
       if (cursor < to) {

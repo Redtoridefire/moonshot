@@ -16,14 +16,20 @@ public final class MainActivity extends FamilyActivity {
   private final ExecutorService worker = Executors.newSingleThreadExecutor();
   private final Handler main = new Handler(Looper.getMainLooper());
   private RecyclerView grid;
-  private TextView title, subtitle, count;
+  private TextView title,
+      subtitle,
+      count,
+      spotlightLabel,
+      spotlightName,
+      spotlightDetail,
+      spotlightMark;
   private LinearLayout content, empty;
   private Button groups;
   private String customGroup = null;
   private String displayedQuery;
   private String section = "live", group = null, query = "";
   private int generation = 0;
-  private boolean busy = false;
+  private boolean busy = false, compactLibrary;
   private final List<Button> nav = new ArrayList<>();
   private List<Channel> visible = new ArrayList<>();
   private android.content.SharedPreferences prefs;
@@ -33,6 +39,7 @@ public final class MainActivity extends FamilyActivity {
     super.onCreate(state);
     Ui.immersive(this);
     prefs = getSharedPreferences("preferences", MODE_PRIVATE);
+    compactLibrary = prefs.getBoolean("compactLibrary", false);
     try {
       library = ((MoonshotApplication) getApplication()).openLibrary();
     } catch (Exception e) {
@@ -75,43 +82,47 @@ public final class MainActivity extends FamilyActivity {
   private void build() {
     LinearLayout root = Ui.row(this);
     root.setGravity(Gravity.TOP);
-    root.setBackgroundColor(Ui.BG);
-    int pad = Ui.dp(this, 24);
+    root.setBackground(Ui.gradient(Ui.BG, android.graphics.Color.rgb(15, 25, 38), 0));
+    int pad = Ui.dp(this, 20);
     root.setPadding(pad, pad, pad, pad);
     setContentView(root);
     LinearLayout side = Ui.column(this);
-    side.setPadding(0, 0, Ui.dp(this, 20), 0);
-    root.addView(side, new LinearLayout.LayoutParams(Ui.dp(this, 177), -1));
-    TextView brand = Ui.text(this, "◕  moonshot", 23, Ui.MINT);
+    side.setPadding(0, Ui.dp(this, 6), Ui.dp(this, 12), 0);
+    root.addView(side, new LinearLayout.LayoutParams(Ui.dp(this, 164), -1));
+    TextView brand = Ui.text(this, "moonshot", 24, Ui.TEXT);
     brand.setTypeface(null, android.graphics.Typeface.BOLD);
     side.addView(brand);
     TextView tagline = Ui.text(this, "YOUR TV. YOUR ORBIT.", 9, Ui.MUTED);
     tagline.setLetterSpacing(.13f);
     LinearLayout.LayoutParams tagp = new LinearLayout.LayoutParams(-1, -2);
-    tagp.setMargins(0, Ui.dp(this, 5), 0, Ui.dp(this, 30));
+    tagp.setMargins(0, Ui.dp(this, 7), 0, Ui.dp(this, 22));
     side.addView(tagline, tagp);
     side.addView(
-        Ui.button(
-            this, "Program guide", () -> startActivity(new Intent(this, GuideActivity.class))),
+        Ui.navButton(
+            this,
+            "Program guide",
+            "guide",
+            () -> startActivity(new Intent(this, GuideActivity.class))),
         new LinearLayout.LayoutParams(-1, Ui.dp(this, 42)));
     addNav(side, "Live TV", "live");
     addNav(side, "Favorites", "favorites");
     addNav(side, "Movies", "movie");
     addNav(side, "Series", "series");
     side.addView(
-        Ui.button(this, "Profiles", this::profiles),
+        Ui.navButton(this, "Profiles", "profiles", this::profiles),
         new LinearLayout.LayoutParams(-1, Ui.dp(this, 38)));
     View spacer = new View(this);
     side.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1));
-    Button settings = Ui.button(this, "Settings", this::settings);
+    Button settings = Ui.navButton(this, "Settings", "settings", this::settings);
     side.addView(settings, new LinearLayout.LayoutParams(-1, Ui.dp(this, 44)));
-    TextView version = Ui.text(this, "MOONSHOT  /  0.3", 10, Ui.MUTED);
+    TextView version = Ui.text(this, "MOONSHOT  /  0.4", 10, Ui.MUTED);
     version.setPadding(Ui.dp(this, 12), Ui.dp(this, 15), 0, 0);
     side.addView(version);
     content = Ui.column(this);
+    content.setPadding(Ui.dp(this, 16), 0, 0, 0);
     root.addView(content, new LinearLayout.LayoutParams(0, -1, 1));
     LinearLayout top = Ui.row(this);
-    title = Ui.text(this, "Live TV", 28, Ui.TEXT);
+    title = Ui.text(this, "Live TV", 30, Ui.TEXT);
     title.setTypeface(null, android.graphics.Typeface.BOLD);
     top.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
     android.widget.TextClock clock = new android.widget.TextClock(this);
@@ -122,8 +133,9 @@ public final class MainActivity extends FamilyActivity {
     top.addView(clock);
     content.addView(top);
     subtitle = Ui.text(this, "A better place to watch.", 13, Ui.MUTED);
-    subtitle.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 18));
+    subtitle.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 14));
     content.addView(subtitle);
+    buildSpotlight();
     LinearLayout tools = Ui.row(this);
     groups = Ui.button(this, "All groups ▾", this::chooseGroup);
     tools.addView(groups, new LinearLayout.LayoutParams(Ui.dp(this, 190), Ui.dp(this, 44)));
@@ -134,6 +146,21 @@ public final class MainActivity extends FamilyActivity {
     LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(0, Ui.dp(this, 44), 1);
     sp.setMargins(Ui.dp(this, 10), 0, 0, 0);
     tools.addView(search, sp);
+    Button layout = Ui.button(this, compactLibrary ? "Grid view" : "List view", () -> {});
+    layout.setTextSize(12);
+    layout.setOnClickListener(
+        v -> {
+          compactLibrary = !compactLibrary;
+          prefs.edit().putBoolean("compactLibrary", compactLibrary).apply();
+          layout.setText(compactLibrary ? "Grid view" : "List view");
+          grid.setLayoutManager(new GridLayoutManager(this, compactLibrary ? 1 : 3));
+          displayedQuery = null;
+          load();
+        });
+    LinearLayout.LayoutParams layoutSize =
+        new LinearLayout.LayoutParams(Ui.dp(this, 90), Ui.dp(this, 44));
+    layoutSize.setMargins(Ui.dp(this, 10), 0, 0, 0);
+    tools.addView(layout, layoutSize);
     content.addView(tools);
     search.addTextChangedListener(
         new TextWatcher() {
@@ -151,12 +178,12 @@ public final class MainActivity extends FamilyActivity {
           public void afterTextChanged(Editable e) {}
         });
     count = Ui.text(this, "Loading library…", 11, Ui.MUTED);
-    count.setPadding(0, Ui.dp(this, 14), 0, Ui.dp(this, 10));
+    count.setPadding(0, Ui.dp(this, 12), 0, Ui.dp(this, 10));
     content.addView(count);
     FrameLayout area = new FrameLayout(this);
     content.addView(area, new LinearLayout.LayoutParams(-1, 0, 1));
     grid = new RecyclerView(this);
-    grid.setLayoutManager(new GridLayoutManager(this, 3));
+    grid.setLayoutManager(new GridLayoutManager(this, compactLibrary ? 1 : 3));
     grid.setClipToPadding(false);
     grid.setPadding(0, 0, Ui.dp(this, 4), Ui.dp(this, 8));
     grid.setItemAnimator(null);
@@ -168,11 +195,83 @@ public final class MainActivity extends FamilyActivity {
     for (Button b : nav) if (section.equals(b.getTag())) b.requestFocus();
   }
 
+  private void buildSpotlight() {
+    LinearLayout panel = Ui.row(this);
+    panel.setPadding(Ui.dp(this, 20), Ui.dp(this, 14), Ui.dp(this, 20), Ui.dp(this, 14));
+    android.graphics.drawable.GradientDrawable background =
+        Ui.gradient(
+            android.graphics.Color.rgb(24, 57, 65),
+            android.graphics.Color.rgb(23, 31, 48),
+            Ui.dp(this, 16));
+    background.setStroke(Ui.dp(this, 1), Ui.BORDER);
+    panel.setBackground(background);
+    LinearLayout info = Ui.column(this);
+    panel.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
+    spotlightLabel = Ui.text(this, "YOUR LIBRARY", 9, Ui.MINT);
+    spotlightLabel.setLetterSpacing(.16f);
+    info.addView(spotlightLabel);
+    spotlightName = Ui.text(this, "Make room for better TV.", 24, Ui.TEXT);
+    spotlightName.setTypeface(null, android.graphics.Typeface.BOLD);
+    spotlightName.setSingleLine(true);
+    spotlightName.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    spotlightName.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 7));
+    info.addView(spotlightName);
+    spotlightDetail =
+        Ui.text(this, "Live channels, movies and series. All in your orbit.", 12, Ui.MUTED);
+    spotlightDetail.setSingleLine(true);
+    spotlightDetail.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    info.addView(spotlightDetail);
+    spotlightMark = Ui.text(this, "M", 32, Ui.MINT);
+    spotlightMark.setGravity(Gravity.CENTER);
+    spotlightMark.setTypeface(null, android.graphics.Typeface.BOLD);
+    spotlightMark.setBackground(Ui.shape(android.graphics.Color.rgb(25, 48, 62), Ui.dp(this, 16)));
+    LinearLayout.LayoutParams mark =
+        new LinearLayout.LayoutParams(Ui.dp(this, 66), Ui.dp(this, 66));
+    mark.setMargins(Ui.dp(this, 20), 0, 0, 0);
+    panel.addView(spotlightMark, mark);
+    LinearLayout.LayoutParams size = new LinearLayout.LayoutParams(-1, Ui.dp(this, 104));
+    size.setMargins(0, 0, 0, Ui.dp(this, 14));
+    content.addView(panel, size);
+  }
+
+  private static String initials(String name) {
+    String[] words = name.trim().split("\\s+");
+    StringBuilder result = new StringBuilder();
+    for (String word : words) {
+      if (!word.isEmpty()) result.appendCodePoint(word.codePointAt(0));
+      if (result.codePointCount(0, result.length()) == 2) break;
+    }
+    return result.length() == 0 ? "TV" : result.toString().toUpperCase(Locale.ROOT);
+  }
+
+  private void spotlight(Channel channel) {
+    if (channel == null) {
+      spotlightLabel.setText("YOUR LIBRARY");
+      spotlightName.setText("Make room for better TV.");
+      spotlightDetail.setText("Live channels, movies and series. All in your orbit.");
+      spotlightMark.setText("M");
+      return;
+    }
+    spotlightLabel.setText(
+        channel.kind.equals("live")
+            ? "LIVE TV  /  READY TO WATCH"
+            : channel.kind.equals("movie") ? "MOVIES  /  YOUR LIBRARY" : "SERIES  /  YOUR LIBRARY");
+    spotlightName.setText(channel.name);
+    spotlightDetail.setText(
+        !channel.now.isEmpty()
+            ? "Now  ·  " + channel.now
+            : channel.group.isEmpty()
+                ? "Press OK to watch  ·  Hold OK for options"
+                : channel.group + "  ·  Press OK to watch");
+    spotlightMark.setText(initials(channel.name));
+  }
+
   private void addNav(LinearLayout side, String label, String key) {
     Button b =
-        Ui.button(
+        Ui.navButton(
             this,
             label,
+            key,
             () -> {
               section = key;
               group = null;
@@ -181,7 +280,7 @@ public final class MainActivity extends FamilyActivity {
             });
     b.setTag(key);
     b.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, Ui.dp(this, 46));
+    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, Ui.dp(this, 42));
     p.setMargins(0, 0, 0, Ui.dp(this, 8));
     side.addView(b, p);
     nav.add(b);
@@ -242,9 +341,10 @@ public final class MainActivity extends FamilyActivity {
                   displayedQuery = queryKey;
                   count.setText(
                       data.size()
-                          + " streams  •  Hold OK for favorites & guide"
+                          + " streams  ·  Hold OK for options"
                           + (data.size() == 5000 ? "  •  First 5,000; narrow your search" : ""));
                   showEmpty(data.isEmpty(), hasSources);
+                  spotlight(data.isEmpty() ? null : data.get(0));
                 });
           } catch (Exception e) {
             main.post(() -> toast("Could not read the local library."));
@@ -319,36 +419,103 @@ public final class MainActivity extends FamilyActivity {
 
     @Override
     public Card onCreateViewHolder(ViewGroup parent, int type) {
+      if (compactLibrary) {
+        LinearLayout line = Ui.row(MainActivity.this);
+        line.setFocusable(true);
+        line.setClickable(true);
+        line.setPadding(
+            Ui.dp(MainActivity.this, 16),
+            Ui.dp(MainActivity.this, 10),
+            Ui.dp(MainActivity.this, 16),
+            Ui.dp(MainActivity.this, 10));
+        RecyclerView.LayoutParams rowSize =
+            new RecyclerView.LayoutParams(-1, Ui.dp(MainActivity.this, 68));
+        rowSize.setMargins(
+            Ui.dp(MainActivity.this, 2),
+            Ui.dp(MainActivity.this, 2),
+            Ui.dp(MainActivity.this, 8),
+            Ui.dp(MainActivity.this, 5));
+        line.setLayoutParams(rowSize);
+        TextView monogram = Ui.text(MainActivity.this, "", 16, Ui.TEXT);
+        monogram.setGravity(Gravity.CENTER);
+        monogram.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        line.addView(
+            monogram,
+            new LinearLayout.LayoutParams(
+                Ui.dp(MainActivity.this, 44), Ui.dp(MainActivity.this, 44)));
+        LinearLayout words = Ui.column(MainActivity.this);
+        words.setGravity(Gravity.CENTER_VERTICAL);
+        words.setPadding(Ui.dp(MainActivity.this, 16), 0, Ui.dp(MainActivity.this, 12), 0);
+        TextView name = Ui.text(MainActivity.this, "", 16, Ui.TEXT);
+        name.setTypeface(null, android.graphics.Typeface.BOLD);
+        name.setSingleLine(true);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        TextView detail = Ui.text(MainActivity.this, "", 11, Ui.MUTED);
+        detail.setPadding(0, Ui.dp(MainActivity.this, 5), 0, 0);
+        detail.setSingleLine(true);
+        detail.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        words.addView(name);
+        words.addView(detail);
+        line.addView(words, new LinearLayout.LayoutParams(0, -1, 1));
+        TextView badge = Ui.text(MainActivity.this, "", 10, Ui.MINT);
+        badge.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        line.addView(badge, new LinearLayout.LayoutParams(Ui.dp(MainActivity.this, 70), -1));
+        return new Card(line, badge, name, detail, monogram);
+      }
       LinearLayout box = Ui.column(MainActivity.this);
       box.setFocusable(true);
       box.setClickable(true);
-      box.setBackground(Ui.focus(MainActivity.this));
-      int p = Ui.dp(MainActivity.this, 14);
+      int p = Ui.dp(MainActivity.this, 13);
       box.setPadding(p, p, p, p);
       RecyclerView.LayoutParams lp =
-          new RecyclerView.LayoutParams(-1, Ui.dp(MainActivity.this, 122));
-      lp.setMargins(0, 0, Ui.dp(MainActivity.this, 10), Ui.dp(MainActivity.this, 10));
+          new RecyclerView.LayoutParams(-1, Ui.dp(MainActivity.this, 116));
+      lp.setMargins(
+          Ui.dp(MainActivity.this, 2),
+          Ui.dp(MainActivity.this, 2),
+          Ui.dp(MainActivity.this, 8),
+          Ui.dp(MainActivity.this, 8));
       box.setLayoutParams(lp);
-      TextView badge = Ui.text(MainActivity.this, "", 10, Ui.MINT);
-      badge.setLetterSpacing(.10f);
-      box.addView(badge);
+      LinearLayout top = Ui.row(MainActivity.this);
+      TextView monogram = Ui.text(MainActivity.this, "", 15, Ui.TEXT);
+      monogram.setGravity(Gravity.CENTER);
+      monogram.setTypeface(null, android.graphics.Typeface.BOLD);
+      monogram.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+      top.addView(
+          monogram,
+          new LinearLayout.LayoutParams(
+              Ui.dp(MainActivity.this, 35), Ui.dp(MainActivity.this, 30)));
+      TextView badge = Ui.text(MainActivity.this, "", 9, Ui.MINT);
+      badge.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+      badge.setLetterSpacing(.12f);
+      top.addView(badge, new LinearLayout.LayoutParams(0, -2, 1));
+      box.addView(top);
       TextView name = Ui.text(MainActivity.this, "", 16, Ui.TEXT);
       name.setTypeface(null, android.graphics.Typeface.BOLD);
-      name.setMaxLines(2);
-      name.setEllipsize(TextUtils.TruncateAt.END);
+      name.setMaxLines(1);
+      name.setEllipsize(android.text.TextUtils.TruncateAt.END);
       LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, 0, 1);
-      np.setMargins(0, Ui.dp(MainActivity.this, 8), 0, Ui.dp(MainActivity.this, 5));
+      np.setMargins(0, Ui.dp(MainActivity.this, 10), 0, Ui.dp(MainActivity.this, 4));
       box.addView(name, np);
       TextView detail = Ui.text(MainActivity.this, "", 11, Ui.MUTED);
       detail.setSingleLine(true);
-      detail.setEllipsize(TextUtils.TruncateAt.END);
+      detail.setEllipsize(android.text.TextUtils.TruncateAt.END);
       box.addView(detail);
-      return new Card(box, badge, name, detail);
+      return new Card(box, badge, name, detail, monogram);
     }
 
     @Override
     public void onBindViewHolder(Card h, int i) {
       Channel ch = data.get(i);
+      int[] tones = {0xff223d4c, 0xff30364f, 0xff244541, 0xff443849, 0xff3c4249};
+      int tint = tones[(ch.name.hashCode() & Integer.MAX_VALUE) % tones.length];
+      h.itemView.setBackground(Ui.surface(MainActivity.this, tint, false));
+      h.monogram.setBackground(Ui.shape(tint, Ui.dp(MainActivity.this, 8)));
+      h.monogram.setText(initials(ch.name));
+      h.itemView.setOnFocusChangeListener(
+          (v, focused) -> {
+            Ui.animateFocus(v, focused);
+            if (focused) spotlight(ch);
+          });
       h.badge.setText(
           (ch.favorite ? "★  " : "")
               + (ch.kind.equals("live") ? "LIVE" : ch.kind.equals("movie") ? "MOVIE" : "SERIES"));
@@ -371,13 +538,14 @@ public final class MainActivity extends FamilyActivity {
   }
 
   static final class Card extends RecyclerView.ViewHolder {
-    TextView badge, name, detail;
+    TextView badge, name, detail, monogram;
 
-    Card(View v, TextView b, TextView n, TextView d) {
+    Card(View v, TextView b, TextView n, TextView d, TextView m) {
       super(v);
       badge = b;
       name = n;
       detail = d;
+      monogram = m;
     }
   }
 
@@ -1065,7 +1233,12 @@ public final class MainActivity extends FamilyActivity {
     }
     LinearLayout body = Ui.dialogBody(this);
     EditText name = Ui.input(this, "Playlist name", false),
-        url = Ui.input(this, "https://provider.example/playlist.m3u", true);
+        url =
+            Ui.address(
+                this,
+                epg
+                    ? "https://provider.example/guide.xml"
+                    : "https://provider.example/playlist.m3u");
     if (!epg) body.addView(name);
     body.addView(url);
     TextView note =
@@ -1161,7 +1334,7 @@ public final class MainActivity extends FamilyActivity {
 
   private void editSource(Library.Source source) {
     LinearLayout body = Ui.dialogBody(this);
-    EditText name = Ui.input(this, "Name", false), url = Ui.input(this, "Playlist address", true);
+    EditText name = Ui.input(this, "Name", false), url = Ui.address(this, "Playlist address");
     name.setText(source.name);
     url.setText(source.url);
     body.addView(name);

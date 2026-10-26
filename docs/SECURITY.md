@@ -12,7 +12,7 @@ Networking uses verified platform TLS through OkHttp 5.4.0 (compatible with comp
 
 Response streams own their cancellable calls. DVR stop cancels the connected response rather than waiting for a blocking `HttpURLConnection` read timeout. A stalled-response regression test verifies this. A connection still being established can take up to the configured connect timeout to unwind.
 
-The app uses generic user-facing errors and does not log raw requests. Playback data-source exceptions are sanitized. Do not enable verbose third-party network/player diagnostics with real credentials; platform or dependency diagnostics are not a blanket no-logging guarantee. Credential-entry and application windows use screenshot protection before display. This is not protection against a compromised OS.
+The app uses generic user-facing errors and does not log raw requests. Playback data-source exceptions are sanitized. Do not enable verbose third-party network/player diagnostics with real credentials; platform or dependency diagnostics are not a blanket no-logging guarantee. M3U/XMLTV address entry and saved playlist editing deliberately show the full address as text at the user’s request. URL fields disable autofill and personalized keyboard learning; passwords, PINs and backup passphrases remain masked. Credential-entry and application windows use screenshot protection before display. This is not protection against a compromised OS.
 
 ## Profiles and PIN
 
