@@ -4,6 +4,14 @@ An independent native Android TV IPTV player for Google TV Streamer and Fire TV 
 
 **Development build.** Automated framework/fixture tests pass as recorded in [validation](docs/VALIDATION.md); physical-device and live-provider acceptance remain open. This is not a claim of complete TiviMate/Apollo feature parity or measured superiority in speed, memory or security.
 
+## Download APK
+
+Open [GitHub Releases](https://github.com/Redtoridefire/moonshot/releases), choose the newest **development build**, expand **Assets**, and download **moonshot-test.apk**. The unsigned release APK needs signing before it can be installed. Releases are created after a successful APK build, unit tests and lint on `main`; a failed build produces no release. The separate TV emulator result is linked from the release and does not certify physical devices.
+
+Every successful `main` build publishes APKs, a matching source archive, validation reports, build metadata and `SHA256SUMS`. They are also available for 90 days under **Actions → Android → run → Artifacts → moonshot-development-build**. Source, tests, scripts and documentation live in Git; generated binaries and reports are release assets rather than Git history. Local SDKs, build caches, private credentials and signing keys are excluded.
+
+CI development APKs currently use a new debug signing key per runner, so an update from another build can fail with a signature mismatch. Uninstalling deletes app data; export a library backup first where supported. A protected, stable signing key is required for seamless updates and production distribution.
+
 ## Install and connect
 
 The development-signed test APK is `app/build/outputs/apk/debug/app-debug.apk`. Sideload with an authorized installer or `adb install -r app/build/outputs/apk/debug/app-debug.apk`. Keep the same signing key to update an earlier development build without losing device-local data. Production releases need your own protected signing identity; the optimized `assembleRelease` APK is unsigned.
@@ -51,4 +59,4 @@ Robolectric's API 28 framework JAR is resolved through Gradle into the build dir
 
 In this cloud checkout, `source scripts/cloud-env.sh` activates retained tools. `bash scripts/cloud-setup.sh` reproduces prerequisite setup and build checks. Each cloud task is already isolated: use the existing checkout rather than creating a Git worktree. Live emulator processes do not survive snapshots.
 
-See [hardware checklist](docs/HARDWARE_CHECKLIST.md), [roadmap/status](docs/ROADMAP.md), [security model](docs/SECURITY.md), [validation evidence](docs/VALIDATION.md) and [release signing](docs/RELEASING.md). Source changes are local unless explicitly pushed. Moonshot is unaffiliated with TiviMate, Apollo, Google or Amazon; use streams you are authorized to access.
+See [hardware checklist](docs/HARDWARE_CHECKLIST.md), [roadmap/status](docs/ROADMAP.md), [security model](docs/SECURITY.md), [validation evidence](docs/VALIDATION.md) and [release signing](docs/RELEASING.md). Moonshot is unaffiliated with TiviMate, Apollo, Google or Amazon; use streams you are authorized to access.

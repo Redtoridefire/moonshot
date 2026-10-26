@@ -14,10 +14,18 @@ Before publishing:
 - Run the automated suite and verify no credentials or private content are packaged.
 - Review content rights, store policies, signing and privacy documentation for the actual distribution channel.
 
-A development-signed build cannot be updated in place by a release APK signed with a different key. Uninstalling removes the local library; re-add playlists afterward. This version does not export credentials or migrate device-local Keystore data.
+A development-signed build cannot be updated in place by a release APK signed with a different key. Uninstalling removes the local library; re-add playlists afterward. Passphrase-encrypted library backups can transfer supported library data, including provider addresses, where a document picker is available; they do not transfer recordings, PINs or the device Keystore.
 
 ## 0.3 candidate acceptance
 
 Run docs/HARDWARE_CHECKLIST.md on both intended TVs before closing the six-phase acceptance gates. The current automated suite uses framework/fixture coverage; it has not certified native decoders or vendor foreground-service/alarm behavior. Review DVR format/storage limits, two-tile resolution admission, system picker availability and the documented security boundaries. SHA-256 lookup fingerprints are not keyed, and this is not full database encryption or a defense against database extraction/root.
 
 The artifact bundle includes a development-signed test APK, source archive, checksum and verification JSON. The optimized release APK remains unsigned. CI dependencies/actions are pinned; update them deliberately and regenerate dependency locks when authorized dependency changes are made. Never treat a successful build or saved environment draft as store publication.
+
+## GitHub download automation
+
+The Android workflow installs checksum-verified command-line tools 12 and explicit SDK packages through `scripts/ci-android-setup.sh`. This avoids the retired `tools` package requested by the previous setup action. Java 17, platform 36 and build tools 35.0.0 match the local toolchain.
+
+After unit tests, lint and both APK builds succeed, `scripts/package-development.sh` verifies the test APK signature and packages source at the exact commit, reports, metadata and checksums. The `moonshot-development-build` Actions artifact is retained for 90 days. On `main`, a separate job with `contents: write` publishes an immutable prerelease named `dev-<run>-<attempt>` with those assets. Pull requests never publish releases. Manual **Run workflow** is supported. These are development downloads, not store releases or physical-device qualification. TV emulator smoke testing remains a separate visible job; APK publication does not imply it passed.
+
+All source/configuration is committed. SDKs, caches, signing keys, subscription data and generated binaries stay out of Git; distributable build outputs are GitHub release assets. CI currently generates debug signing identities per runner: preserve/export data before switching builds. Configure a protected persistent signing key separately before promising in-place updates.

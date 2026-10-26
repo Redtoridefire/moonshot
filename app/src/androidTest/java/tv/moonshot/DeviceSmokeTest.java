@@ -269,16 +269,36 @@ public class DeviceSmokeTest {
     library.favorite(news);
     UiDevice device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
-      assertTrue(device.wait(Until.hasObject(By.text("Sample News")), 30000));
+      assertTrue(
+          "Live channel must appear", device.wait(Until.hasObject(By.text("Sample News")), 30000));
+      assertTrue(
+          "Live TV navigation must initially hold remote focus",
+          device.wait(Until.hasObject(By.text("Live TV").focused(true)), 10000));
       device.pressDPadDown();
+      assertTrue(
+          "Down must focus Favorites",
+          device.wait(Until.hasObject(By.text("Favorites").focused(true)), 10000));
       device.pressDPadCenter();
       assertTrue(
+          "OK must open Favorites",
           device.wait(Until.hasObject(By.text("The channels you always come back to.")), 15000));
-      assertNotNull(device.findObject(By.text("Sample News")));
+      assertTrue(
+          "Favorite channel must remain visible",
+          device.wait(Until.hasObject(By.text("Sample News")), 15000));
+      assertFalse("Nonfavorite movie must not appear", device.hasObject(By.text("Sample Movie")));
       device.pressDPadRight();
-      java.io.File screen =
-          new java.io.File(context.getExternalFilesDir(null), "moonshot-library.png");
-      assertTrue(device.takeScreenshot(screen));
+      UiObject2 focused = device.wait(Until.findObject(By.pkg("tv.moonshot").focused(true)), 10000);
+      assertNotNull("Right must keep focus within the app", focused);
+      assertNotEquals(
+          "Right must leave the Favorites navigation item", "Favorites", focused.getText());
+      // FLAG_SECURE intentionally prevents screenshots; it must stay enabled in tests too.
+      scenario.onActivity(
+          a ->
+              assertTrue(
+                  "Library must retain screenshot protection",
+                  (a.getWindow().getAttributes().flags
+                          & android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                      != 0));
     }
   }
 
