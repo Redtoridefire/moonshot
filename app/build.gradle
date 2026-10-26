@@ -1,0 +1,65 @@
+plugins { id 'com.android.application' }
+
+dependencyLocking { lockAllConfigurations() }
+configurations { robolectricSdk }
+def prepareRobolectricSdk = tasks.register('prepareRobolectricSdk', Copy) {
+    from configurations.robolectricSdk
+    into layout.buildDirectory.dir('robolectric-sdk')
+}
+
+
+android {
+    namespace 'tv.moonshot'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'tv.moonshot'
+        minSdk 26
+        targetSdk 35
+        versionCode 3
+        versionName '0.3.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError true }
+    testOptions {
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            // Framework sandboxes alter global crypto providers; keep JVM TLS checks isolated.
+            forkEvery = 1
+            maxParallelForks = 1
+            dependsOn prepareRobolectricSdk
+            systemProperty 'robolectric.offline', 'true'
+            systemProperty 'robolectric.dependency.dir', layout.buildDirectory.dir('robolectric-sdk').get().asFile.absolutePath
+            ['http.proxyHost','http.proxyPort','https.proxyHost','https.proxyPort','javax.net.ssl.trustStore'].each { key ->
+                if (System.getProperty(key)) systemProperty key, System.getProperty(key)
+            }
+            systemProperty 'http.nonProxyHosts', 'localhost|127.*'
+        }
+    }
+}
+dependencies {
+    robolectricSdk('org.robolectric:android-all-instrumented:9-robolectric-4913185-2-i7') { transitive = false }
+    implementation 'com.squareup.okhttp3:okhttp:5.4.0'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.media3:media3-exoplayer:1.11.1'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.11.1'
+    implementation 'androidx.media3:media3-exoplayer-dash:1.11.1'
+    implementation 'androidx.media3:media3-ui:1.11.1'
+    implementation 'androidx.media3:media3-datasource-okhttp:1.11.1'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:5.4.0'
+    testImplementation 'com.squareup.okhttp3:okhttp-tls:5.4.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.16.1'
+    testImplementation 'androidx.test:core:1.6.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test:core:1.6.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+}
