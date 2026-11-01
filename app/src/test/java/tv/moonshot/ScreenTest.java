@@ -65,6 +65,13 @@ public class ScreenTest {
     return null;
   }
 
+  View clickable(View v) {
+    while (v != null && !v.isClickable())
+      v = v.getParent() instanceof View ? (View) v.getParent() : null;
+    assertNotNull("Expected a clickable row", v);
+    return v;
+  }
+
   void settle() throws Exception {
     for (int i = 0; i < 20; i++) {
       Shadows.shadowOf(Looper.getMainLooper()).idle();
@@ -88,8 +95,17 @@ public class ScreenTest {
       assertNotNull(
           "Empty library must finish loading", text(root, "Your next favorite starts here."));
       text(root, "Settings").performClick();
-      AlertDialog settings = ShadowAlertDialog.getLatestAlertDialog();
-      settings.getListView().performItemClick(null, 0, 0);
+      android.app.Dialog settings = org.robolectric.shadows.ShadowDialog.getLatestDialog();
+      assertTrue(
+          "Settings must keep screenshot protection",
+          (settings.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE)
+              != 0);
+      View sheet = settings.getWindow().getDecorView();
+      assertNotNull("Link tester must be offered", text(sheet, "Test a playlist link"));
+      assertNotNull("Secure DNS must be offered", text(sheet, "Secure DNS"));
+      clickable(text(sheet, "Add M3U playlist")).performClick();
+      settle();
+      assertFalse("Opening a playlist dialog closes the sheet", settings.isShowing());
       AlertDialog entry = ShadowAlertDialog.getLatestAlertDialog();
       assertTrue(
           (entry.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
@@ -106,7 +122,6 @@ public class ScreenTest {
       assertEquals(
           "https://example.invalid/playlist.m3u?token=fixture", address.getText().toString());
       entry.dismiss();
-      settings.dismiss();
       assertNotNull(text(root, "Program guide"));
     }
   }

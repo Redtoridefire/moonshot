@@ -1,11 +1,61 @@
 <resources>
     <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
-        <item name="android:fontFamily">sans</item>
+        <item name="android:fontFamily">sans-serif</item>
         <item name="android:colorAccent">#78E3C5</item>
-        <item name="android:windowBackground">#0B1018</item>
+        <item name="android:colorPrimary">#141C29</item>
+        <item name="android:colorBackground">#090D15</item>
+        <item name="android:textColorPrimary">#F0F5FA</item>
+        <item name="android:textColorSecondary">#92A0B5</item>
+        <item name="android:windowBackground">#090D15</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowFullscreen">true</item>
-        <item name="android:navigationBarColor">#0B1018</item>
+        <item name="android:navigationBarColor">#090D15</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:alertDialogTheme">@style/MoonshotDialog</item>
+        <item name="android:dialogTheme">@style/MoonshotDialog</item>
+    </style>
+    <style name="AppTheme.Aurora">
+        <item name="android:colorAccent">#B69CFF</item>
+        <item name="android:alertDialogTheme">@style/MoonshotDialog.Aurora</item>
+        <item name="android:dialogTheme">@style/MoonshotDialog.Aurora</item>
+    </style>
+    <style name="AppTheme.Sunset">
+        <item name="android:colorAccent">#FFB86B</item>
+        <item name="android:alertDialogTheme">@style/MoonshotDialog.Sunset</item>
+        <item name="android:dialogTheme">@style/MoonshotDialog.Sunset</item>
+    </style>
+    <style name="AppTheme.Ocean">
+        <item name="android:colorAccent">#6CB8FF</item>
+        <item name="android:alertDialogTheme">@style/MoonshotDialog.Ocean</item>
+        <item name="android:dialogTheme">@style/MoonshotDialog.Ocean</item>
+    </style>
+    <style name="AppTheme.Blossom">
+        <item name="android:colorAccent">#FF8FB1</item>
+        <item name="android:alertDialogTheme">@style/MoonshotDialog.Blossom</item>
+        <item name="android:dialogTheme">@style/MoonshotDialog.Blossom</item>
+    </style>
+
+    <style name="MoonshotDialog" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/dialog_surface</item>
+        <item name="android:colorBackground">#141C29</item>
+        <item name="android:colorAccent">#78E3C5</item>
+        <item name="android:textColorPrimary">#F0F5FA</item>
+        <item name="android:textColorSecondary">#92A0B5</item>
+        <item name="android:backgroundDimAmount">0.72</item>
+    </style>
+    <style name="MoonshotDialog.Aurora"><item name="android:colorAccent">#B69CFF</item></style>
+    <style name="MoonshotDialog.Sunset"><item name="android:colorAccent">#FFB86B</item></style>
+    <style name="MoonshotDialog.Ocean"><item name="android:colorAccent">#6CB8FF</item></style>
+    <style name="MoonshotDialog.Blossom"><item name="android:colorAccent">#FF8FB1</item></style>
+
+    <!-- Full-screen translucent sheet used by Settings and the link tester. -->
+    <style name="MoonshotSheet" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
     </style>
 </resources>

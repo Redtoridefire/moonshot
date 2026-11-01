@@ -105,6 +105,9 @@ final class Library extends SQLiteOpenHelper {
     return b.toString();
   }
 
+  /** Streams in the most recent successful import that use unencrypted HTTP. */
+  volatile int lastInsecure;
+
   synchronized int importSource(String name, String address, boolean allowHttp) throws Exception {
     return replaceSource(null, name, address, allowHttp);
   }
@@ -136,7 +139,9 @@ final class Library extends SQLiteOpenHelper {
                 "SELECT COUNT(*) FROM sources WHERE id=?",
                 new String[] {existing})
             != 1) throw new IOException("Missing source");
-    try (InputStream stream = Network.fetch(address, allowHttp);
+    lastInsecure = 0;
+    int[] insecure = {0};
+    try (InputStream stream = Network.playlist(Network.fetch(address, allowHttp));
         Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
       SQLiteDatabase db = getWritableDatabase();
       db.beginTransaction();
@@ -147,6 +152,7 @@ final class Library extends SQLiteOpenHelper {
             M3uParser.parse(
                 reader,
                 ch -> {
+                  if (ch.url.regionMatches(true, 0, "http:", 0, 5)) insecure[0]++;
                   String urlKey = hash(ch.url);
                   String id = existingId(db, source, urlKey, ch);
                   if (id == null) {
@@ -187,6 +193,7 @@ final class Library extends SQLiteOpenHelper {
         if (db.update("sources", s, "id=?", new String[] {source}) == 0)
           db.insertOrThrow("sources", null, s);
         db.setTransactionSuccessful();
+        lastInsecure = insecure[0];
         return count;
       } finally {
         db.endTransaction();

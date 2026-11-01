@@ -115,4 +115,30 @@ public class M3uParserTest {
   public void supportsClassicCarriageReturns() throws Exception {
     assertEquals(2, parse("#EXTM3U\rhttps://example.com/one\rhttps://example.com/two\r").size());
   }
+
+  @Test
+  public void acceptsKodiHeaderSuffixAndSpaces() throws Exception {
+    List<Channel> c =
+        parse(
+            "#EXTM3U\n#EXTINF:-1,One\nhttp://example.com/live/1.ts|User-Agent=VLC\n"
+                + "#EXTINF:-1,Two\nhttps://example.com/live stream/2.m3u8\n");
+    assertEquals(2, c.size());
+    assertEquals("http://example.com/live/1.ts", c.get(0).url);
+    assertEquals("https://example.com/live%20stream/2.m3u8", c.get(1).url);
+  }
+
+  @Test
+  public void explainsUnsupportedProtocols() throws Exception {
+    try {
+      parse("#EXTM3U\n#EXTINF:-1,A\nrtmp://example.com/live\n");
+      fail();
+    } catch (ProviderException e) {
+      assertTrue(e.getMessage().contains("RTMP"));
+    }
+  }
+
+  @Test
+  public void vodPathsAreMovies() throws Exception {
+    assertEquals("movie", parse("#EXTINF:-1,Film\nhttps://example.com/vod/1.mp4\n").get(0).kind);
+  }
 }

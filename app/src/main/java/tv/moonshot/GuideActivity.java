@@ -159,7 +159,7 @@ public final class GuideActivity extends FamilyActivity {
     heading.setText(
         "  " + formatter().format(new Date(from)) + " – " + formatter().format(new Date(to)));
     ruler.removeAllViews();
-    TextView channels = Ui.text(this, "CHANNELS", 10, Ui.MINT);
+    TextView channels = Ui.text(this, "CHANNELS", 10, Ui.ACCENT);
     channels.setLetterSpacing(.12f);
     ruler.addView(channels, new LinearLayout.LayoutParams(Ui.dp(this, 160), -2));
     java.text.DateFormat time = new java.text.SimpleDateFormat("HH:mm", Locale.getDefault());

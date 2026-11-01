@@ -105,10 +105,11 @@ public final class MultiViewActivity extends FamilyActivity {
         column.addView(Ui.button(this, channel.name + " · Listen", () -> audio(tile)));
         PlayerView view = new PlayerView(this);
         column.addView(view, new LinearLayout.LayoutParams(-1, 0, 1));
-        androidx.media3.datasource.okhttp.OkHttpDataSource.Factory http =
-            new androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(Network.playbackClient())
-                .setUserAgent("Moonshot/0.3 AndroidTV");
         boolean allow = getSharedPreferences("preferences", 0).getBoolean("allowHttp", false);
+        androidx.media3.datasource.okhttp.OkHttpDataSource.Factory http =
+            new androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(
+                    Network.playbackClient(allow))
+                .setUserAgent(Network.userAgent());
         DataSource.Factory guarded =
             () -> new PlaybackActivity.GuardedSource(http.createDataSource(), allow);
         DefaultLoadControl buffer =

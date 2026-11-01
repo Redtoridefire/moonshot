@@ -67,3 +67,22 @@ Google and Bing became reachable after the environment update, but Google return
 5. Verify actual success/error response shapes, permitted authentication, profile selection, stream formats, expiry and playback with user-entered account credentials on the intended devices. Respect any required browser challenge or provider access restrictions.
 
 No credentials are needed in chat or source. Static declarations alone cannot certify that a third-party client will be accepted. The existing APK does not yet implement this account API.
+
+## Update: M3U import hardening (0.5)
+
+A second attempt to fetch the user-supplied `con.me` playlist link from the cloud workspace was again refused by the workspace's own egress policy (every external host, including `example.com`, was denied), so no provider response was observed. Instead, the import path was audited for failure modes that match the symptoms and fixed:
+
+| Failure mode | Before | 0.5 behavior |
+| --- | --- | --- |
+| Hostname blocked or missing at the ISP resolver (the earlier screenshot showed a DNS error) | Generic "Import failed" | Automatic DNS-over-HTTPS fallback (Cloudflare `1.1.1.1`, Google `8.8.8.8`); optional *Always*; specific error with a "Use Secure DNS and retry" button |
+| HTTPS playlist link redirects to an HTTP host | Generic failure | Explains the downgrade and offers "Allow HTTP and retry" |
+| Stream URL redirects between HTTP and HTTPS (common for `play` endpoints and CDNs) | Playback failed: OkHttp's `followSslRedirects(false)` refused every cross-scheme redirect | Followed; a downgrade to HTTP is still refused unless HTTP is allowed |
+| Provider rejects unknown players (401/403/empty) | Generic failure | Explained; selectable *Player identity* (Moonshot, VLC, ExoPlayer, browser, custom) |
+| Body is a web page, JSON (e.g. `{"message":"…"}`), XMLTV or empty | "No playable entries" or generic | Specific explanation; short provider messages are relayed with URLs stripped |
+| Body gzip-compressed without `Content-Encoding` | Parsed as garbage | Unwrapped |
+| Entries in Kodi form `url|User-Agent=…` or with unencoded spaces | Silently dropped | Accepted (options after the pipe are ignored) |
+| Imported streams use HTTP while HTTP is blocked | Imported, then every channel failed to play | Prompt after import to allow HTTP |
+
+**Settings → Test a playlist link** runs the same checks on the device and reports each step (lookup on the network's DNS vs. Secure DNS, each redirect hop's host and status, response format, playlist counts, one sample stream, alternative identities) with a one-tap fix. It shows host names and status codes only, never paths, queries or credentials.
+
+If every step passes except the provider's answer (for example 403 with every identity, or a web page asking for sign-in), the provider is restricting the link to its own apps; that is consistent with the token-based `secure_link` flow documented above and cannot be fixed client-side without the provider-account integration listed under *Moonshot integration work still required*.
