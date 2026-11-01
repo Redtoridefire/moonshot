@@ -12,6 +12,7 @@ public final class GateActivity extends Activity {
 
   @Override
   public void onCreate(Bundle state) {
+    setTheme(Ui.theme());
     super.onCreate(state);
     Ui.immersive(this);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);

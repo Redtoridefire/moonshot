@@ -18,7 +18,7 @@ public final class M3uParser {
     BufferedReader reader = new BufferedReader(input);
     String name = null, group = "", tvgId = "";
     Map<String, String> pending = Collections.emptyMap();
-    int count = 0;
+    int count = 0, unsupported = 0;
     String line;
     while ((line = boundedLine(reader)) != null) {
       if (Thread.currentThread().isInterrupted()) throw new InterruptedIOException();
@@ -37,22 +37,29 @@ public final class M3uParser {
       } else if (line.startsWith("#EXTGRP:")) {
         group = line.substring(8).trim();
       } else if (!line.isEmpty() && !line.startsWith("#")) {
-        if (!isWebUrl(line)) {
+        String address = streamAddress(line);
+        if (address == null) {
+          if (line.matches("(?i)^(rtmp|rtmps|rtsp|udp|rtp|mms)://.*")) unsupported++;
           name = null;
           group = "";
           tvgId = "";
           pending = Collections.emptyMap();
           continue;
         }
-        String path = URI.create(line).getPath().toLowerCase(Locale.ROOT);
+        String path = URI.create(address).getPath();
+        path = path == null ? "" : path.toLowerCase(Locale.ROOT);
         String kind =
-            path.contains("/movie/") ? "movie" : path.contains("/series/") ? "series" : "live";
+            path.contains("/series/")
+                ? "series"
+                : path.contains("/movie/") || path.contains("/movies/") || path.contains("/vod/")
+                    ? "movie"
+                    : "live";
         Channel channel =
             new Channel(
                 name == null ? "Channel " + (count + 1) : cap(name, 512),
                 group.isEmpty() ? "Ungrouped" : cap(group, 256),
                 cap(tvgId, 256),
-                line,
+                address,
                 kind);
         channel.catchupMode = pending.getOrDefault("catchup", "");
         channel.catchupSource = pending.getOrDefault("catchup-source", "");
@@ -67,11 +74,32 @@ public final class M3uParser {
         name = null;
         group = "";
         tvgId = "";
-        if (++count > 150000) throw new IOException("Playlist exceeds 150,000 entries");
+        if (++count > 150000)
+          throw new ProviderException(
+              ProviderException.Reason.FORMAT, "The playlist has more than 150,000 entries.");
       }
     }
-    if (count == 0) throw new IOException("No playable HTTP or HTTPS entries found");
+    if (count == 0)
+      throw new ProviderException(
+          ProviderException.Reason.FORMAT,
+          unsupported > 0
+              ? "The playlist only contains RTMP/RTSP/UDP streams, which Moonshot does not play."
+              : "The playlist contains no playable HTTP or HTTPS streams.");
     return count;
+  }
+
+  /**
+   * The playable address on a playlist line, or null. Accepts the common Kodi form {@code
+   * url|User-Agent=...} (request options after the pipe are dropped) and unencoded spaces, which
+   * strict URI parsing would otherwise reject, silently discarding the entry.
+   */
+  static String streamAddress(String line) {
+    String s = line.trim();
+    if (s.length() > 1 && s.startsWith("\"") && s.endsWith("\"")) s = s.substring(1, s.length() - 1);
+    int pipe = s.indexOf('|');
+    if (pipe > 0) s = s.substring(0, pipe);
+    s = s.trim().replace(" ", "%20");
+    return isWebUrl(s) ? s : null;
   }
 
   private static String cap(String s, int limit) {

@@ -57,9 +57,14 @@ public final class PlaybackActivity extends FamilyActivity {
     video.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
     root.addView(video, new FrameLayout.LayoutParams(-1, -1));
     LinearLayout top = Ui.row(this);
-    top.setPadding(Ui.dp(this, 24), Ui.dp(this, 14), Ui.dp(this, 24), Ui.dp(this, 14));
-    top.setBackgroundColor(0xCC0B1018);
-    status = Ui.text(this, "Opening stream…", 16, Ui.TEXT);
+    top.setPadding(Ui.dp(this, 32), Ui.dp(this, 22), Ui.dp(this, 32), Ui.dp(this, 40));
+    top.setBackground(Ui.vertical(0xE6000000, 0x00000000, 0));
+    ImageView mark = new ImageView(this);
+    mark.setImageDrawable(Ui.icon(this, "moon", 22, Ui.ACCENT));
+    LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(Ui.dp(this, 22), Ui.dp(this, 22));
+    mp.rightMargin = Ui.dp(this, 14);
+    top.addView(mark, mp);
+    status = Ui.heading(this, "Opening stream…", 18);
     top.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
     top.addView(Ui.button(this, "Audio / captions", this::tracks));
     FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(-1, -2, Gravity.TOP);
@@ -69,7 +74,7 @@ public final class PlaybackActivity extends FamilyActivity {
     error = Ui.column(this);
     error.setGravity(Gravity.CENTER);
     error.setPadding(Ui.dp(this, 40), Ui.dp(this, 30), Ui.dp(this, 40), Ui.dp(this, 30));
-    error.setBackgroundColor(0xEE0B1018);
+    error.setBackground(Ui.vertical(0xF2101826, 0xF2090D15, 0));
     error.setVisibility(View.GONE);
     root.addView(error, new FrameLayout.LayoutParams(-1, -1));
     try {
@@ -144,8 +149,9 @@ public final class PlaybackActivity extends FamilyActivity {
     boolean allowHttp =
         getSharedPreferences("preferences", MODE_PRIVATE).getBoolean("allowHttp", false);
     androidx.media3.datasource.okhttp.OkHttpDataSource.Factory http =
-        new androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(Network.playbackClient())
-            .setUserAgent("Moonshot/0.3 AndroidTV");
+        new androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(
+                Network.playbackClient(allowHttp))
+            .setUserAgent(Network.userAgent());
     DataSource.Factory guarded = () -> new GuardedSource(http.createDataSource(), allowHttp);
     DefaultMediaSourceFactory sources = new DefaultMediaSourceFactory(guarded);
     DefaultLoadControl buffer =
@@ -178,10 +184,7 @@ public final class PlaybackActivity extends FamilyActivity {
           @Override
           public void onPlayerError(PlaybackException e) {
             savePosition();
-            fail(
-                "Unable to play this stream. The provider may be offline, your connection limit may"
-                    + " be reached, or this device may not support its format. Check HTTP settings"
-                    + " if your provider uses HTTP.");
+            fail(explain(e));
           }
 
           @Override
@@ -196,6 +199,49 @@ public final class PlaybackActivity extends FamilyActivity {
     player.prepare();
     player.play();
     video.requestFocus();
+  }
+
+  /** A specific, address-free explanation of a playback failure. */
+  static String explain(PlaybackException e) {
+    String cause = "";
+    for (Throwable t = e; t != null; t = t.getCause())
+      if (t.getMessage() != null && t.getMessage().startsWith("Stream ")) {
+        cause = t.getMessage();
+        break;
+      }
+    if (cause.contains("blocked") || cause.contains("unencrypted"))
+      return "This stream uses unencrypted HTTP, which is turned off. Allow it in Settings →"
+          + " Unencrypted HTTP if your provider requires it.";
+    if (cause.contains("HTTP 401") || cause.contains("HTTP 403"))
+      return "The provider refused this stream ("
+          + cause.substring(cause.indexOf("HTTP"), cause.indexOf("HTTP") + 8)
+          + "). Your connection limit may be in use on another device, the link may have"
+          + " expired, or the provider may reject this player: try Settings → Player identity.";
+    if (cause.contains("HTTP 404") || cause.contains("HTTP 410"))
+      return "The provider no longer has this stream. Refresh the playlist and try again.";
+    if (cause.contains("HTTP 5"))
+      return "The provider's server had an error for this stream. Try again shortly.";
+    switch (e.errorCode) {
+      case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED:
+        return "Could not connect to the stream server. It may be offline or blocked on this"
+            + " network; Settings → Secure DNS: Always can help when it is blocked.";
+      case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT:
+        return "The stream server timed out. Check the connection and try again.";
+      case PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED:
+      case PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED:
+      case PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED:
+        return "The stream's format could not be read. The provider may be sending an error page"
+            + " instead of video, or a format this device does not support.";
+      case PlaybackException.ERROR_CODE_DECODER_INIT_FAILED:
+      case PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED:
+      case PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES:
+        return "This device cannot decode the stream's video or audio format.";
+      case PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW:
+        return "Playback fell behind the live stream. Press OK to retry.";
+      default:
+        return "Unable to play this stream. The provider may be offline, your connection limit"
+            + " may be reached, or this device may not support its format.";
+    }
   }
 
   private void fail(String message) {
@@ -424,7 +470,12 @@ public final class PlaybackActivity extends FamilyActivity {
         throw new IOException("Stream protocol is blocked");
       try {
         return delegate.open(spec);
+      } catch (HttpDataSource.InvalidResponseCodeException e) {
+        throw new IOException("Stream connection failed: HTTP " + e.responseCode);
       } catch (IOException e) {
+        for (Throwable t = e; t != null; t = t.getCause())
+          if (t instanceof ProviderException)
+            throw new IOException("Stream blocked: unencrypted redirect");
         throw new IOException("Stream connection failed");
       }
     }

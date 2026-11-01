@@ -12,6 +12,7 @@ public abstract class FamilyActivity extends Activity {
 
   @Override
   protected void onCreate(Bundle state) {
+    setTheme(Ui.theme());
     super.onCreate(state);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
   }
