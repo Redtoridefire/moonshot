@@ -24,7 +24,8 @@ public class PlaybackSourceTest {
       String address = "http://127.0.0.1:" + server.getPort() + "/fixture.ts";
       DataSource blocked =
           new PlaybackActivity.GuardedSource(
-              new OkHttpDataSource.Factory(Network.playbackClient()).createDataSource(), false);
+              new OkHttpDataSource.Factory(Network.playbackClient(false)).createDataSource(),
+              false);
       try {
         blocked.open(new DataSpec(Uri.parse(address)));
         fail("HTTP must be opt-in for playback too");
@@ -36,7 +37,7 @@ public class PlaybackSourceTest {
       server.enqueue(new MockResponse().setBody("fixture"));
       DataSource allowed =
           new PlaybackActivity.GuardedSource(
-              new OkHttpDataSource.Factory(Network.playbackClient()).createDataSource(), true);
+              new OkHttpDataSource.Factory(Network.playbackClient(true)).createDataSource(), true);
       try {
         assertEquals(7, allowed.open(new DataSpec(Uri.parse(address))));
         ByteArrayOutputStream out = new ByteArrayOutputStream();
