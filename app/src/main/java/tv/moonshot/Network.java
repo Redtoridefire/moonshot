@@ -259,7 +259,7 @@ final class Network {
 
   /** Null when the sample looks like an M3U playlist; otherwise a specific explanation. */
   static ProviderException classify(String start) {
-    String trimmed = start.replace("﻿", "").trim();
+    String trimmed = start.replace("\uFEFF", "").trim();
     String lower = trimmed.toLowerCase(Locale.ROOT);
     if (trimmed.isEmpty())
       return new ProviderException(
