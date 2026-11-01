@@ -1,4 +1,4 @@
-# Moonshot TV · 0.4.0
+# Moonshot TV · 0.5.0
 
 An independent native Android TV IPTV player for Google TV Streamer and Fire TV Stick 4K Max, with an original dark interface, mint remote focus rings and device-local libraries. One universal APK targets Android 8.0/API 26 and later. No Google Play services, subscription, content, ads or analytics account is bundled.
 
@@ -6,7 +6,11 @@ An independent native Android TV IPTV player for Google TV Streamer and Fire TV 
 
 ## TV interface
 
-The 0.4 interface adds an icon sidebar, a focused-channel information panel, stronger remote focus/selected states, gradient channel cards and a persistent **List view / Grid view** switch. The program guide includes a half-hour time ruler and highlights currently airing programs. It uses local metadata and original vector icons; browsing does not start preview streams or download extra artwork.
+**0.5** reworks the home screen: a collapsible icon rail that tucks away while you browse, an ambient backdrop and hero panel that take on the focused channel's color, horizontal group chips instead of a pop-up list, four-column cards that lift and scale on focus, a **Recent** section, a profile avatar and date/clock. Settings is now a slide-in panel with live values, notices slide up in-app, and **Settings → Accent color** offers Mint, Aurora, Sunset, Ocean and Blossom. The screenshots below are from 0.4 and have not yet been regenerated.
+
+**Playlist troubleshooting.** If a playlist won't load, the import now says why (DNS block, HTTP-only provider, refused access, web page or JSON instead of M3U, etc.) and offers a one-tap fix. **Settings → Test a playlist link** runs a step-by-step check on the TV. **Secure DNS** (automatic by default) gets around ISP DNS blocks, and **Player identity** helps with providers that reject unknown players. See [Apollo compatibility](docs/APOLLO_COMPATIBILITY.md).
+
+The 0.4 interface added an icon sidebar, a focused-channel information panel, stronger remote focus/selected states, gradient channel cards and a persistent **List view / Grid view** switch. The program guide includes a half-hour time ruler and highlights currently airing programs. It uses local metadata and original vector icons; browsing does not start preview streams or download extra artwork.
 
 ![Channel library](docs/images/library-grid.png)
 
